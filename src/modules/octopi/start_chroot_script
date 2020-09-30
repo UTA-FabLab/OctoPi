@@ -58,7 +58,7 @@ pushd /home/pi
   sudo -u pi python3 -m virtualenv --python=python3 oprint
   sudo -u pi /home/pi/oprint/bin/pip install --upgrade pip
 
-  # OctoPrint & pyserial
+  # OctoPrint
   if [ "$OCTOPI_INCLUDE_OCTOPRINT" == "yes" ]
   then
     echo "--- Cloning Scripts package from UTA-FabLab"
