@@ -31,7 +31,7 @@ do_start () {
   sanitized_hostname=`echo "$new_hostname" | tr -cd '[[:alnum:]]-'` 
   if [ "$new_hostname" = "$sanitized_hostname" ]
   then
-    rm "$text_file"
+    mv "$text_file" "$text_file".sample
     echo "$new_hostname" > /etc/hostname
     sed -i -e "s@$old_hostname@$new_hostname@g" /etc/hosts
 

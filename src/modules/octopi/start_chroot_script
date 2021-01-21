@@ -25,6 +25,18 @@ WEBCAM_USER=webcam
 unpack /filesystem/home/pi /home/pi pi
 unpack /filesystem/home/root /root root
 unpack /filesystem/boot /boot
+
+## Maintanence Settings
+if [ "$OCTOPI_CHANGE_ACCESS_SETTINGS" == "yes" ]
+then
+  echo -e "--- CHANGE DEVICE SSH ACCESS SETTINGS ---"
+  sed -i -e "s@.*Port 22.*@Port $OCTOPI_SSH_PORT@g" /etc/ssh/sshd_config
+  echo -e "$OCTOPI_PASSWD\n$OCTOPI_PASSWD" | passwd pi
+  echo "Enabling UART"
+  echo "# Enable UART" >>/boot/config.txt
+  echo "enable_uart=1" >>/boot/config.txt
+fi
+
 apt-get update
 
 # in case we are building from a regular raspbian image instead of the lite one...
@@ -33,7 +45,7 @@ echo "removing:" $remove_extra
 apt-get remove -y --purge  $remove_extra
 apt-get autoremove -y
 
-apt-get -y --force-yes install python3 python3-virtualenv python3-dev git screen subversion cmake checkinstall avahi-daemon libavahi-compat-libdnssd1 libffi-dev libssl-dev
+apt-get -y --force-yes install python3 python3-virtualenv python3-dev python3-pip git screen subversion cmake checkinstall avahi-daemon libavahi-compat-libdnssd1 libffi-dev libssl-dev ntp ntpdate
 
 echo " - Reinstall iputils-ping"
 apt-get install --reinstall iputils-ping
@@ -47,13 +59,12 @@ pushd /home/pi
   # OctoPrint & pyserial
   if [ "$OCTOPI_INCLUDE_OCTOPRINT" == "yes" ]
   then
+    echo "--- Cloning Scripts package from UTA-FabLab"
+    git clone https://$OCTOPI_GIT_FL_TOKEN:x-oauth-basic@$OCTOPI_SCRIPTS_GIT_PATH --branch=$OCTOPI_SCRIPTS_GIT_BRANCH fl_scripts
+    echo "--- Copying device config to boot partition"
+    cp /home/pi/fl_scripts/files/device.json /boot/device.json
     echo "--- Installing OctoPrint"
-
-    #pybonjour (for mdns discovery)
-    sudo -u pi /home/pi/oprint/bin/pip install $OCTOPI_PYBONJOUR_ARCHIVE
-
-    #OctoPrint
-    PIP_DEFAULT_TIMEOUT=60 sudo -u pi /home/pi/oprint/bin/pip install $OCTOPI_OCTOPRINT_ARCHIVE
+    bash ./fl_scripts/device_update -m
   fi
 
   #mjpg-streamer
@@ -111,22 +122,7 @@ EOT
     usermod -aG video ${WEBCAM_USER}
   fi
   
-  #CuraEngine
-  if [ "$OCTOPI_INCLUDE_CURAENGINE" == "yes" ]
-  then
-    echo "--- Installing CuraEngine"
-    folder=CuraEngine-$OCTOPI_CURAENGINE_VERSION
-    zipfile=$folder.zip
-    apt-get -y install gcc-4.9 g++-4.9
-    sudo -u pi wget -O$zipfile $OCTOPI_CURAENGINE_ARCHIVE
-    sudo -u pi unzip $zipfile
-    pushd $folder
-      sudo -u pi make -j$(nproc) CXX=g++-4.9 VERSION=$OCTOPI_CURAENGINE_VERSION
-      cp build/CuraEngine /usr/local/bin/cura_engine
-    popd
-    sudo -u pi rm -r $folder $zipfile
-  fi
-
+  
   #setup haproxy for http and https, and webcam
   if [ "$OCTOPI_INCLUDE_HAPROXY" == "yes" ]
   then
@@ -210,6 +206,7 @@ systemctl_if_exists disable lightdm.service || true
 
 update-rc.d change_password defaults
 update-rc.d change_hostname defaults
+update-rc.d change_ip defaults
 
 
 ### OctoPrint

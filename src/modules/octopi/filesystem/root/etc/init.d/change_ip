@@ -1,0 +1,44 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          change_ip
+# Required-Start:    $local_fs
+# Required-Stop:
+# Default-Start:     3
+# Default-Stop:
+# Short-Description: Change pi's hostname via /boot/octopi-dhcpcd.conf
+# Description:
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+do_start () {
+  text_file="/boot/octopi-dhcpcd.conf"
+  orig_file="/etc/dhcpcd.conf"
+  if [ ! -f "$text_file" ]
+  then
+    exit 0
+  fi
+  cp -f "$orig_file" "$orig_file".sample
+  cp -f "$text_file" "$orig_file"
+  mv "$text_file" "$text_file".sample
+
+  log_success_msg "Static IP config updated, rebooting to apply..."
+  /sbin/reboot
+}
+
+case "$1" in
+  start|"")
+        do_start
+        ;;
+  restart|reload|force-reload)
+        echo "Error: argument '$1' not supported" >&2
+        exit 3
+        ;;
+  stop)
+        # No-op
+        ;;
+  *)
+        echo "Usage: change_hostname [start|stop]" >&2
+        exit 3
+        ;;
+esac
