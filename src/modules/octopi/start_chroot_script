@@ -42,7 +42,7 @@ apt-get update
 # in case we are building from a regular raspbian image instead of the lite one...
 remove_extra=$(remove_if_installed scratch squeak-plugins-scratch squeak-vm wolfram-engine python-minecraftpi minecraft-pi sonic-pi oracle-java8-jdk bluej libreoffice-common libreoffice-core freepats greenfoot nodered)
 echo "removing:" $remove_extra
-apt-get remove -y --purge  $remove_extra
+apt-get remove -y --purge $remove_extra
 apt-get autoremove -y
 
 apt-get -y --force-yes install python3 python3-virtualenv python3-dev python3-pip git screen subversion cmake checkinstall avahi-daemon libavahi-compat-libdnssd1 libffi-dev libssl-dev ntp ntpdate
@@ -122,13 +122,11 @@ EOT
     usermod -aG video ${WEBCAM_USER}
   fi
   
-  
-  #setup haproxy for http and https, and webcam
-  if [ "$OCTOPI_INCLUDE_HAPROXY" == "yes" ]
+  # Setup Nginx for http, https and webcam
+  if [ "$OCTOPI_INCLUDE_NGINX" == "yes" ]
   then
     echo "--- Installing haproxy"
-    apt-get -y --force-yes install ssl-cert haproxy
-    rm /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem
+    apt-get install nginx
   fi
 
   if [ "$OCTOPI_INCLUDE_WIRINGPI" == "yes" ]
@@ -219,11 +217,23 @@ else
   rm /etc/systemd/system/octoprint.service
 fi
 
-### haproxy
+### haproxy / Nginx
 
 if [ "$OCTOPI_INCLUDE_HAPROXY" == "yes" ]
 then
   systemctl_if_exists enable gencert.service
+elif [ "$OCTOPI_INCLUDE_NGINX" == "yes" ]
+  ln -s /etc/nginx/sites-available/octopuppet /etc/nginx/sites-enabled/octopuppet
+  ln -s /etc/nginx/sites-available/octopuppet-maintanence /etc/nginx/sites-enabled/octopuppet-maintanence
+
+  cat <<'EOT' >> /etc/cockpit/cockpit.conf
+[WebService]
+Origins = https://fablabhost wss://fablabhost
+ProtocolHeader = X-Forwarded-Proto
+UrlRoot=/shell
+AllowUnencrypted=true
+EOT
+
 else
   # let's remove the configs for system services we don't need
   rm /etc/systemd/system/gencert.service
