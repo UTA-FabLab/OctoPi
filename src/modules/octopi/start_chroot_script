@@ -35,6 +35,8 @@ then
   echo "Enabling UART"
   echo "# Enable UART" >>/boot/config.txt
   echo "enable_uart=1" >>/boot/config.txt
+  sudo systemctl disable dhcpcd.service
+  sudo systemctl enable networking.service
 fi
 
 apt-get update
@@ -125,7 +127,6 @@ EOT
   # Setup Nginx for http, https and webcam
   if [ "$OCTOPI_INCLUDE_NGINX" == "yes" ]
   then
-    echo "--- Installing haproxy"
     apt-get install nginx
   fi
 

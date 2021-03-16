@@ -1,0 +1,8 @@
+# Change the following to use static IP
+
+#auto eth0
+#iface eth0 inet static
+#address 123.456.78.90
+#netmask 255.255.255.0
+#gateway 123.456.78.1
+#dns-nameservers 123.456.78.90 123.456.78.91
