@@ -1,39 +1,8 @@
 ###############################################################################
 # All our config settings must start with OCTOPI_
 
-# OctoPrint archive
-[ -n "$OCTOPI_OCTOPRINT_ARCHIVE" ] || OCTOPI_OCTOPRINT_ARCHIVE=$(wget -q -O - https://api.github.com/repos/foosel/OctoPrint/releases/latest | grep "zipball_url" | cut -d : -f 2,3 | tr -d \" | tr -d ,)
-[ -n "$OCTOPI_OCTOPRINT_REPO_SHIP" ] || OCTOPI_OCTOPRINT_REPO_SHIP=https://github.com/UTA-FabLab/OctoPuppet.git
-[ -n "$OCTOPI_INCLUDE_OCTOPRINT" ] || OCTOPI_INCLUDE_OCTOPRINT=yes
-
-# PyBonjour archive
-[ -n "$OCTOPI_PYBONJOUR_ARCHIVE" ] || OCTOPI_PYBONJOUR_ARCHIVE=https://github.com/OctoPrint/pybonjour-python3/archive/master.zip
-
-# CuraEngine archive & version
-[ -n "$OCTOPI_CURAENGINE_VERSION" ] || OCTOPI_CURAENGINE_VERSION=15.04.6
-[ -n "$OCTOPI_CURAENGINE_ARCHIVE" ] || OCTOPI_CURAENGINE_ARCHIVE=https://github.com/Ultimaker/CuraEngine/archive/$OCTOPI_CURAENGINE_VERSION.zip
-[ -n "$OCTOPI_INCLUDE_CURAENGINE" ] || OCTOPI_INCLUDE_CURAENGINE=no
-
-# mjpg streamer
-[ -n "$OCTOPI_MJPGSTREAMER_REPO_SHIP" ] || OCTOPI_MJPGSTREAMER_REPO_SHIP=https://github.com/jacksonliam/mjpg-streamer.git
-[ -n "$OCTOPI_MJPGSTREAMER_REPO_BUILD" ] || OCTOPI_MJPGSTREAMER_REPO_BUILD=
-[ -n "$OCTOPI_MJPGSTREAMER_REPO_BRANCH" ] || OCTOPI_MJPGSTREAMER_REPO_BRANCH=master
-[ -n "$OCTOPI_MJPGSTREAMER_REPO_DEPTH" ] || OCTOPI_MJPGSTREAMER_REPO_DEPTH=1
-[ -n "$OCTOPI_INCLUDE_MJPGSTREAMER" ] || OCTOPI_INCLUDE_MJPGSTREAMER=no
-
-# FFMPEG HLS
-[ -n "$OCTOPI_INCLUDE_FFMPEG_HLS" ] || OCTOPI_INCLUDE_FFMPEG_HLS=yes
-
-# Nginx
-[ -n "$OCTOPI_INCLUDE_NGINX" ] || OCTOPI_INCLUDE_NGINX=yes
-
-# WiringPi
-[ -n "$OCTOPI_INCLUDE_WIRINGPI" ] || OCTOPI_INCLUDE_WIRINGPI=yes
-
-# yq
-[ -n "$OCTOPI_YQ_DOWNLOAD" ] || OCTOPI_YQ_DOWNLOAD=$(wget -q -O - https://api.github.com/repos/mikefarah/yq/releases/latest | grep "browser_download_url" | grep "yq_linux_arm" | cut -d : -f 2,3 | tr -d \" | tr -d ,)
-
-[ -n "$OCTOPI_COMMIT" ] || OCTOPI_COMMIT=`pushd "${DIST_PATH}" > /dev/null ; git rev-parse HEAD ; popd > /dev/null`
+# JuiceBox 
+[ -n "$OCTOPI_INCLUDE_JUICEBOX" ] || OCTOPI_INCLUDE_JUICEBOX=yes
 
 # Fixed apt mirror
 [ -n "$OCTOPI_APTMIRROR" ] || OCTOPI_APTMIRROR=
@@ -42,7 +11,6 @@
 [ -n "$OCTOPI_GIT_FL_TOKEN" ] || OCTOPI_GIT_FL_TOKEN=
 [ -n "$OCTOPI_PASSWD" ] || OCTOPI_PASSWD=
 [ -n "$OCTOPI_SSH_PORT" ] || OCTOPI_SSH_PORT=
-
 
 # Maintanence Scripts repo & branch
 [ -n "$OCTOPI_SCRIPTS_GIT_PATH" ] || OCTOPI_SCRIPTS_GIT_PATH=

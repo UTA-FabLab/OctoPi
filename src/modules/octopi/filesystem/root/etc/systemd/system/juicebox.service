@@ -1,0 +1,16 @@
+[Unit]
+Description=JuiceBox
+After=network-online.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/home/pi/juice/bin/python /home/pi/JuiceBox/main.py
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=JuiceBox
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

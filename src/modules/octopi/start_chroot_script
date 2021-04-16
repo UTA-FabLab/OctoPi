@@ -32,11 +32,10 @@ then
   echo -e "--- CHANGE DEVICE SSH ACCESS SETTINGS ---"
   sed -i -e "s@.*Port 22.*@Port $OCTOPI_SSH_PORT@g" /etc/ssh/sshd_config
   echo -e "$OCTOPI_PASSWD\n$OCTOPI_PASSWD" | passwd pi
+  sudo sed -i -e "s@#dtparam=spi=on@dtparam=spi=on@g" /boot/config.txt
   echo "Enabling UART"
   echo "# Enable UART" >>/boot/config.txt
   echo "enable_uart=1" >>/boot/config.txt
-  sudo systemctl disable dhcpcd.service
-  sudo systemctl enable networking.service
 fi
 
 apt-get update
@@ -55,95 +54,26 @@ apt-get install --reinstall iputils-ping
 pushd /home/pi
 
   # build virtualenv
-  sudo -u pi python3 -m virtualenv --python=python3 oprint
-  sudo -u pi /home/pi/oprint/bin/pip install --upgrade pip
+  sudo -u pi python3 -m virtualenv --python=python3 juice
+  sudo -u pi /home/pi/juice/bin/pip install --upgrade pip
+  sudo -u pi /home/pi/juice/bin/pip install --upgrade RPi.GPIO
 
   # OctoPrint & pyserial
-  if [ "$OCTOPI_INCLUDE_OCTOPRINT" == "yes" ]
+  if [ "$OCTOPI_INCLUDE_JUICEBOX" == "yes" ]
   then
     echo "--- Cloning Scripts package from UTA-FabLab"
-    git clone https://$OCTOPI_GIT_FL_TOKEN:x-oauth-basic@$OCTOPI_SCRIPTS_GIT_PATH --branch=$OCTOPI_SCRIPTS_GIT_BRANCH fl_scripts
+    sudo -u pi git clone https://$OCTOPI_GIT_FL_TOKEN:x-oauth-basic@$OCTOPI_SCRIPTS_GIT_PATH --branch=$OCTOPI_SCRIPTS_GIT_BRANCH fl_scripts
     echo "--- Copying device config to boot partition"
     cp /home/pi/fl_scripts/files/device.json /boot/device.json
-    echo "--- Installing OctoPrint"
+    echo "--- Installing JuiceBox"
     bash ./fl_scripts/device_update -m
   fi
-
-  #mjpg-streamer
-  if [ "$OCTOPI_INCLUDE_MJPGSTREAMER" == "yes" ]
-  then
-    echo "--- Installing mjpg-streamer"
-    if [ $( is_in_apt libjpeg62-turbo-dev ) -eq 1 ]; then
-      apt-get -y --force-yes install libjpeg62-turbo-dev
-    elif [ $( is_in_apt libjpeg8-dev ) -eq 1 ]; then 
-      apt-get -y --force-yes install libjpeg8-dev
-    fi
-    
-    apt-get -y --force-yes --no-install-recommends install imagemagick ffmpeg libv4l-dev
-    gitclone OCTOPI_MJPGSTREAMER_REPO mjpg-streamer
-    pushd mjpg-streamer
-      mv mjpg-streamer-experimental/* .
-
-      # As said in Makefile, it is just a wrapper around CMake.
-      # To apply -j option, we have to unwrap it.
-      MJPG_STREAMER_BUILD_DIR=_build
-      [ -d ${MJPG_STREAMER_BUILD_DIR} ] || (mkdir ${MJPG_STREAMER_BUILD_DIR} && \
-        chown pi:pi ${MJPG_STREAMER_BUILD_DIR})
-      [ -f ${MJPG_STREAMER_BUILD_DIR}/Makefile ] || (cd ${MJPG_STREAMER_BUILD_DIR} && \
-        sudo -u pi cmake -DCMAKE${MJPG_STREAMER_BUILD_DIR}_TYPE=Release ..)
-
-      sudo -u pi make -j $(nproc) -C ${MJPG_STREAMER_BUILD_DIR}
-
-      sudo -u pi cp ${MJPG_STREAMER_BUILD_DIR}/mjpg_streamer .
-      sudo -u pi find ${MJPG_STREAMER_BUILD_DIR} -name "*.so" -type f -exec cp {} . \;
-
-      # create our custom web folder and add a minimal index.html to it
-      sudo -u pi mkdir www-octopi
-      pushd www-octopi
-        cat <<EOT >> index.html
-<html>
-<head><title>mjpg_streamer test page</title></head>
-<body>
-<h1>Snapshot</h1>
-<p>Refresh the page to refresh the snapshot</p>
-<img src="./?action=snapshot" alt="Snapshot">
-<h1>Stream</h1>
-<img src="./?action=stream" alt="Stream">
-</body>
-</html>
-EOT
-      popd
-    popd
-  fi
-
-  # FFMPEG HLS
-  if [ "$OCTOPI_INCLUDE_FFMPEG_HLS" == "yes" ]
-  then
-    apt-get install -y --force-yes --no-install-recommends ffmpeg nginx
-    useradd ${WEBCAM_USER}
-    usermod -aG video ${WEBCAM_USER}
-  fi
-  
-  # Setup Nginx for http, https and webcam
-  if [ "$OCTOPI_INCLUDE_NGINX" == "yes" ]
-  then
-    apt-get install nginx
-  fi
-
-  if [ "$OCTOPI_INCLUDE_WIRINGPI" == "yes" ]
-  then
-    echo "--- Installing WiringPi"
-    apt-get install wiringpi
-  fi
-
-  # fetch current yq build and install to /usr/local/bin
-  wget -O yq $OCTOPI_YQ_DOWNLOAD && chmod +x yq && mv yq /usr/local/bin
-  
 popd
 
 #Make sure user pi has access to serial ports
 usermod -a -G tty pi
 usermod -a -G dialout pi
+usermod -a -G gpio pi
 
 # store octopi commit used to build this image
 echo "$OCTOPI_COMMIT" > /etc/octopi_commit
@@ -159,37 +89,6 @@ echo "pi ALL=NOPASSWD: /usr/sbin/service" > /etc/sudoers.d/octoprint-service
 #default sudo path and placing a git wrapper script there that checks if it's run as root
 sed -i "s@secure_path=\"@secure_path=\"/root/bin:@g" /etc/sudoers
 chmod +x /root/bin/git
-
-# add some "How To" info to boot output
-# Note, this code is also in /filesystem/home/pi/scripts/
-sed -i 's@exit 0@@' /etc/rc.local
-cat <<'EOT' >> /etc/rc.local
-
-echo
-echo "------------------------------------------------------------"
-echo
-echo "You may now open a web browser on your local network and "
-echo "navigate to any of the following addresses to access "
-echo "OctoPrint:"
-echo
-for name in $_NAME;
-do
-    echo " http://$name.local"
-done
-
-for ip in $(hostname -I);
-do 
-    echo "    http://$ip"
-done
-
-echo
-echo "https is also available, with a self-signed certificate."
-echo 
-echo "------------------------------------------------------------"
-echo
-EOT
-
-echo 'exit 0' >> /etc/rc.local
 
 # add a longer welcome text to ~pi/.bashrc
 echo "source /home/pi/scripts/welcome" >> /home/pi/.bashrc
@@ -210,66 +109,13 @@ update-rc.d change_ip defaults
 
 ### OctoPrint
 
-if [ "$OCTOPI_INCLUDE_OCTOPRINT" == "yes" ]
+if [ "$OCTOPI_INCLUDE_JUICEBOX" == "yes" ]
 then
-  systemctl_if_exists enable octoprint.service
+  systemctl_if_exists enable juicebox.service
 else
   # let's remove the configs for system services we don't need
-  rm /etc/systemd/system/octoprint.service
+  rm /etc/systemd/system/juicebox.service
 fi
-
-### haproxy / Nginx
-
-if [ "$OCTOPI_INCLUDE_HAPROXY" == "yes" ]
-then
-  systemctl_if_exists enable gencert.service
-elif [ "$OCTOPI_INCLUDE_NGINX" == "yes" ]
-  ln -s /etc/nginx/sites-available/octopuppet /etc/nginx/sites-enabled/octopuppet
-  ln -s /etc/nginx/sites-available/octopuppet-maintanence /etc/nginx/sites-enabled/octopuppet-maintanence
-
-  cat <<'EOT' >> /etc/cockpit/cockpit.conf
-[WebService]
-Origins = https://fablabhost wss://fablabhost
-ProtocolHeader = X-Forwarded-Proto
-UrlRoot=/shell
-AllowUnencrypted=true
-EOT
-
-else
-  # let's remove the configs for system services we don't need
-  rm /etc/systemd/system/gencert.service
-
-  # also we need to make OctoPrint bind to all interfaces because otherwise
-  # it will be unaccessible...
-  [ -f /etc/systemd/system/octoprint.service ] && sed -i "s@HOST=127.0.0.1@HOST=0.0.0.0@" /etc/systemd/system/octoprint.service
-fi
-
-### CuraEngine
-
-if [ ! "$OCTOPI_INCLUDE_CURAENGINE" == "yes" ]
-then
-  # unconfigure the cura engine path in octoprint's config.yaml
-  sudo -u pi sed -i -e "s@cura_engine: /usr/local/bin/cura_engine@cura_engine:@g" /home/pi/.octoprint/config.yaml
-fi
-
-### Streamer select service.
-
-systemctl_if_exists enable streamer_select.service
-
-### mjpg_streamer
-
-if [ "$OCTOPI_INCLUDE_MJPGSTREAMER" == "yes" ]
-then
-  systemctl_if_exists enable webcamd.service
-else
-  rm /etc/logrotate.d/webcamd
-  rm /etc/systemd/system/webcamd.service
-  rm /root/bin/webcamd
-fi
-
-### HLS streamer
-
-systemctl_if_exists enable ffmpeg_hls.service
 
 #cleanup
 apt-get clean
