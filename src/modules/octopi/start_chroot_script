@@ -26,10 +26,6 @@ unpack /filesystem/home/pi /home/"${BASE_USER}" "${BASE_USER}"
 unpack /filesystem/home/root /root root
 unpack /filesystem/boot /boot
 
-if [ "${BASE_DISTRO}" == "ubuntu" ]; then
-  ln -s /boot/firmware/octopi.txt /boot/octopi.txt
-fi
-
 ## Maintanence Settings
 if [ "$OCTOPI_CHANGE_ACCESS_SETTINGS" == "yes" ]
 then
