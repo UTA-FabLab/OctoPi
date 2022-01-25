@@ -5,6 +5,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment:
+      name: 3dp
     steps:
     - name: Install Dependencies
       run: |
