@@ -1,9 +1,33 @@
 name: Build Image for OctoPuppet
 on: 
-  push:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'     
+        required: true
+        default: 'warning' 
+        type: choice
+        options:
+        - info
+        - warning
+        - debug 
+      environment:
+        description: 'Environment to run tests against'
+        type: environment
+        required: true
+
 
 jobs:
   build:
+    env:
+      LEVEL: ${{ github.event.inputs.logLevel }}
+      TAGS: ${{ github.event.inputs.tags }}
+      ENVIRONMENT: ${{ github.event.inputs.environment }}
+      OCTOPI_GIT_FL_TOKEN: ${{ secrets.OCTOPI_GIT_FL_TOKEN }}
+      OCTOPI_PASSWD: ${{ secrets.OCTOPI_PASSWD }}
+      OCTOPI_SSH_PORT: ${{ secrets.OCTOPI_SSH_PORT }}
+      OCTOPI_SCRIPTS_GIT_PATH: ${{ secrets.OCTOPI_SCRIPTS_GIT_PATH }}
+      OCTOPI_SCRIPTS_GIT_BRANCH: ${{ secrets.OCTOPI_SCRIPTS_GIT_BRANCH }}
     runs-on: ubuntu-latest
     environment:
       name: 3dp
@@ -41,12 +65,6 @@ jobs:
         sudo modprobe loop
         cd repository/src
         sudo bash -x ./build_dist
-      env:
-        OCTOPI_GIT_FL_TOKEN: ${{ secrets.OCTOPI_GIT_FL_TOKEN }}
-        OCTOPI_PASSWD: ${{ secrets.OCTOPI_PASSWD }}
-        OCTOPI_SSH_PORT: ${{ secrets.OCTOPI_SSH_PORT }}
-        OCTOPI_SCRIPTS_GIT_PATH: ${{ secrets.OCTOPI_SCRIPTS_GIT_PATH }}
-        OCTOPI_SCRIPTS_GIT_BRANCH: ${{ secrets.OCTOPI_SCRIPTS_GIT_BRANCH }}
         
     - name: Copy output
       id: copy
