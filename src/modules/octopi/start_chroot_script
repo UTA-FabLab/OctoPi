@@ -27,6 +27,7 @@ unpack /filesystem/home/root /root root
 unpack /filesystem/boot /boot
 
 ## Maintanence Settings
+echo "PORT: $OCTOPI_SSH_PORT"
 if [ "$OCTOPI_CHANGE_ACCESS_SETTINGS" == "yes" ]
 then
   echo -e "--- CHANGE DEVICE SSH ACCESS SETTINGS ---"
