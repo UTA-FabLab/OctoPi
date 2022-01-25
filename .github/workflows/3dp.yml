@@ -16,7 +16,6 @@ on:
         type: environment
         required: true
 
-
 jobs:
   build:
     env:
@@ -29,8 +28,6 @@ jobs:
       OCTOPI_SCRIPTS_GIT_PATH: ${{ secrets.OCTOPI_SCRIPTS_GIT_PATH }}
       OCTOPI_SCRIPTS_GIT_BRANCH: ${{ secrets.OCTOPI_SCRIPTS_GIT_BRANCH }}
     runs-on: ubuntu-latest
-    environment:
-      name: 3dp
     steps:
     - name: Install Dependencies
       run: |
