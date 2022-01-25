@@ -58,6 +58,12 @@ jobs:
       run: |
         echo "OCTOPI_APTMIRROR=http://mirror.us.leaseweb.net/raspbian/raspbian" > repository/src/config.local
     - name: Build Image
+      env:
+        OCTOPI_GIT_FL_TOKEN: ${{ secrets.OCTOPI_GIT_FL_TOKEN }}
+        OCTOPI_PASSWD: ${{ secrets.OCTOPI_PASSWD }}
+        OCTOPI_SSH_PORT: ${{ secrets.OCTOPI_SSH_PORT }}
+        OCTOPI_SCRIPTS_GIT_PATH: ${{ secrets.OCTOPI_SCRIPTS_GIT_PATH }}
+        OCTOPI_SCRIPTS_GIT_BRANCH: ${{ secrets.OCTOPI_SCRIPTS_GIT_BRANCH }}
       run: |
         sudo modprobe loop
         cd repository/src
