@@ -1,12 +1,6 @@
-name: Build Image
-
-env:
-  OCTOPI_SSH_PORT: ${{ secrets.PI_PORT }}
-
+name: Build Image for OctoPuppet
 on: 
   push:
-  schedule: 
-    - cron: '0 0 * * *'
 
 jobs:
   build:
@@ -45,6 +39,13 @@ jobs:
         sudo modprobe loop
         cd repository/src
         sudo bash -x ./build_dist
+      env:
+        OCTOPI_GIT_FL_TOKEN: ${{ secrets.OCTOPI_GIT_FL_TOKEN }}
+        OCTOPI_PASSWD: ${{ secrets.OCTOPI_PASSWD }}
+        OCTOPI_SSH_PORT: ${{ secrets.OCTOPI_SSH_PORT }}
+        OCTOPI_SCRIPTS_GIT_PATH: ${{ secrets.OCTOPI_SCRIPTS_GIT_PATH }}
+        OCTOPI_SCRIPTS_GIT_BRANCH: ${{ secrets.OCTOPI_SCRIPTS_GIT_BRANCH }}
+        
     - name: Copy output
       id: copy
       run: |
