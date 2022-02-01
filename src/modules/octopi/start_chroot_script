@@ -252,9 +252,11 @@ then
   fi
 
 elif [ "$OCTOPI_INCLUDE_NGINX" == "yes" ]
+then
   ln -s /etc/nginx/sites-available/octopuppet /etc/nginx/sites-enabled/octopuppet
   ln -s /etc/nginx/sites-available/octopuppet-maintanence /etc/nginx/sites-enabled/octopuppet-maintanence
-
+  mkdir -p /etc/cockpit
+  touch /etc/cockpit/cockpit.conf
   cat <<'EOT' >> /etc/cockpit/cockpit.conf
 [WebService]
 Origins = https://fablabhost wss://fablabhost
