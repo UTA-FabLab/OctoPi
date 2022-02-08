@@ -5,20 +5,20 @@
 # Required-Stop:
 # Default-Start:     3
 # Default-Stop:
-# Short-Description: Change pi's IP via /boot/octopi-eth0
+# Short-Description: Change pi's hostname via /boot/octopi-dhcpcd.conf
 # Description:
 ### END INIT INFO
 
 . /lib/lsb/init-functions
 
 do_start () {
-  text_file="/boot/octopi-eth0"
-  orig_file="/etc/network/interfaces.d/eth0"
+  text_file="/boot/octopi-dhcpcd.conf"
+  orig_file="/etc/dhcpcd.conf"
   if [ ! -f "$text_file" ]
   then
     exit 0
   fi
-  cp -f "$orig_file" "$orig_file".orig
+  cp -f "$orig_file" "$orig_file".sample
   cp -f "$text_file" "$orig_file"
   mv "$text_file" "$text_file".sample
 
