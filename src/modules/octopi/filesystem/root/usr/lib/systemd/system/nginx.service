@@ -3,7 +3,7 @@
 Description=NGINX server for serving HLS and JPEG frames
 Documentation=man:nginx(8)
 After=network.target nss-lookup.target
-ConditionPathExists=/etc/octopi_streamer/hls
+# ConditionPathExists=/etc/octopi_streamer/hls
 
 [Service]
 Type=forking
