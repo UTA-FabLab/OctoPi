@@ -11,7 +11,7 @@ export LC_ALL=C
 
 source /common.sh
 
-if [ -n "$OCTOPI_APTMIRROR" ]; 
+if [ -n "$OCTOPI_APTMIRROR" ];
 then
     echo "Switching apt mirror in /etc/apt/sources.list to $OCTOPI_APTMIRROR"
     cp /etc/apt/sources.list /etc/apt/sources.list.backup
@@ -19,10 +19,12 @@ then
 fi
 
 WEBCAM_USER=webcam
+FFMPEG_HLS_COMMIT=c6fdbe26ef30fff817581e5ed6e078d96111248a
+FFMPEG_HLS_DIR=/opt/ffmpeg-hls
 
 ### Script ####
 
-unpack /filesystem/home/pi /home/pi pi
+unpack /filesystem/home/pi /home/"${BASE_USER}" "${BASE_USER}"
 unpack /filesystem/home/root /root root
 unpack /filesystem/boot /boot
 
@@ -46,34 +48,40 @@ echo "removing:" $remove_extra
 apt-get remove -y --purge $remove_extra
 apt-get autoremove -y
 
-apt-get -y --force-yes install python3 python3-virtualenv python3-dev python3-pip git screen subversion cmake checkinstall avahi-daemon libavahi-compat-libdnssd1 libffi-dev libssl-dev ntp ntpdate
+apt-get -y --force-yes install python3 python3-virtualenv python3-dev git screen subversion cmake cmake-data avahi-daemon libavahi-compat-libdnssd1 libffi-dev libssl-dev libatlas3-base unzip
 
 echo " - Reinstall iputils-ping"
 apt-get install --reinstall iputils-ping
 
-pushd /home/pi
+pushd /home/"${BASE_USER}"
 
   # build virtualenv
-  sudo -u pi python3 -m virtualenv --python=python3 juice
-  sudo -u pi /home/pi/juice/bin/pip install --upgrade pip
-  sudo -u pi /home/pi/juice/bin/pip install --upgrade RPi.GPIO
+  sudo -u "${BASE_USER}" python3 -m virtualenv --python=python3 juice
+  sudo -u "${BASE_USER}" /home/"${BASE_USER}"/oprint/bin/pip install --upgrade pip
+  sudo -u "${BASE_USER}" /home/"${BASE_USER}"/oprint/bin/pip install --upgrade RPi.GPIO
 
   # OctoPrint & pyserial
   if [ "$OCTOPI_INCLUDE_JUICEBOX" == "yes" ]
   then
     echo "--- Cloning Scripts package from UTA-FabLab"
-    sudo -u pi git clone https://$OCTOPI_GIT_FL_TOKEN:x-oauth-basic@$OCTOPI_SCRIPTS_GIT_PATH --branch=$OCTOPI_SCRIPTS_GIT_BRANCH fl_scripts
+    sudo -u "${BASE_USER}" git clone https://$OCTOPI_GIT_FL_TOKEN:x-oauth-basic@$OCTOPI_SCRIPTS_GIT_PATH --branch=$OCTOPI_SCRIPTS_GIT_BRANCH fl_scripts
     echo "--- Copying device config to boot partition"
-    cp /home/pi/fl_scripts/files/device.json /boot/device.json
+    cp /home/"${BASE_USER}"/fl_scripts/files/device.json /boot/device.json
     echo "--- Installing JuiceBox"
     bash ./fl_scripts/device_update -m
   fi
 popd
 
-#Make sure user pi has access to serial ports
-usermod -a -G tty pi
-usermod -a -G dialout pi
-usermod -a -G gpio pi
+#Make sure user pi / ${BASE_USER} has access to serial ports
+usermod -a -G tty "${BASE_USER}"
+usermod -a -G dialout "${BASE_USER}"
+usermod -a -G gpio "${BASE_USER}"
+
+# If building against Ubuntu, make sure vcgencmd is available and pi has the rights to use it
+if [ "${BASE_DISTRO}" == "ubuntu" ]; then
+  apt-get -y --force-yes install libraspberrypi-bin
+  usermod -a -G video "${BASE_USER}"
+fi
 
 # store octopi commit used to build this image
 echo "$OCTOPI_COMMIT" > /etc/octopi_commit
@@ -81,17 +89,17 @@ echo "$OCTOPI_COMMIT" > /etc/octopi_commit
 # Keep legacy compatibility
 ln -s /etc/custompios_buildbase /etc/octopi_buildbase
 
-# allow pi user to run shutdown and service commands
-echo "pi ALL=NOPASSWD: /sbin/shutdown" > /etc/sudoers.d/octoprint-shutdown
-echo "pi ALL=NOPASSWD: /usr/sbin/service" > /etc/sudoers.d/octoprint-service
+# allow pi / ${BASE_USER} user to run shutdown and service commands
+echo "${BASE_USER} ALL=NOPASSWD: /sbin/shutdown" > /etc/sudoers.d/octoprint-shutdown
+echo "${BASE_USER} ALL=NOPASSWD: /usr/sbin/service" > /etc/sudoers.d/octoprint-service
 
 #make sure users don't run git with sudo, thus breaking permissions, by adding /root/bin to the
 #default sudo path and placing a git wrapper script there that checks if it's run as root
 sed -i "s@secure_path=\"@secure_path=\"/root/bin:@g" /etc/sudoers
 chmod +x /root/bin/git
 
-# add a longer welcome text to ~pi/.bashrc
-echo "source /home/pi/scripts/welcome" >> /home/pi/.bashrc
+echo "source /home/${BASE_USER}/scripts/welcome" >> /home/${BASE_USER}/.bashrc
+# add a longer welcome text to ~pi/.bashrc / ~${BASE_USER}/.bashrc
 
 #unpack root in the end, so etc file are not overwritten, might need to add two roots int he future
 unpack /filesystem/root /
@@ -117,11 +125,29 @@ else
   rm /etc/systemd/system/juicebox.service
 fi
 
+### Disable Wifi Power management
+
+systemctl_if_exists enable wifi_powersave@off.service
+
+### Network monitoring
+
+systemctl_if_exists enable networkcheck.timer
+
+### User-fixing
+# Users can change their username easily via the Raspberry Pi imager, which breaks some of OctoPi's scripts
+# we need to install virtualenv-tools3, so let's get pip and that
+if [ "${BASE_DISTRO}" == "raspbian" ] || [ "${BASE_DISTRO}" == "raspios64" ] || [ "${BASE_DISTRO}" == "raspios" ]; then
+    apt install -y python3-pip
+    sudo -u pi pip3 install --user virtualenv-tools3
+    systemctl_if_exists enable user-fix.service
+fi
+
+
 #cleanup
 apt-get clean
 apt-get autoremove -y
 
-if [ -n "$OCTOPI_APTMIRROR" ]; 
+if [ -n "$OCTOPI_APTMIRROR" ];
 then
     echo "Reverting /etc/apt/sources.list"
     mv /etc/apt/sources.list.backup /etc/apt/sources.list
