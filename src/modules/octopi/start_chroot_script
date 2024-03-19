@@ -48,7 +48,7 @@ echo "removing:" $remove_extra
 apt-get remove -y --purge $remove_extra
 apt-get autoremove -y
 
-apt-get -y --force-yes install python3 python3-virtualenv python3-dev git screen subversion cmake cmake-data avahi-daemon libavahi-compat-libdnssd1 libffi-dev libssl-dev libatlas3-base unzip
+apt-get -y --force-yes install python3 python3-virtualenv python3-dev git screen subversion cmake cmake-data avahi-daemon libavahi-compat-libdnssd1 libffi-dev libssl-dev libatlas3-base unzip jq
 
 echo " - Reinstall iputils-ping"
 apt-get install --reinstall iputils-ping
@@ -57,10 +57,10 @@ pushd /home/"${BASE_USER}"
 
   # build virtualenv
   sudo -u "${BASE_USER}" python3 -m virtualenv --python=python3 juice
-  sudo -u "${BASE_USER}" /home/"${BASE_USER}"/oprint/bin/pip install --upgrade pip
-  sudo -u "${BASE_USER}" /home/"${BASE_USER}"/oprint/bin/pip install --upgrade RPi.GPIO
+  sudo -u "${BASE_USER}" /home/"${BASE_USER}"/juice/bin/pip install --upgrade pip
+  sudo -u "${BASE_USER}" /home/"${BASE_USER}"/juice/bin/pip install --upgrade RPi.GPIO
 
-  # OctoPrint & pyserial
+  # JuiceBox & pyserial
   if [ "$OCTOPI_INCLUDE_JUICEBOX" == "yes" ]
   then
     echo "--- Cloning Scripts package from UTA-FabLab"
@@ -115,7 +115,7 @@ update-rc.d change_hostname defaults
 update-rc.d change_ip defaults
 
 
-### OctoPrint
+### JuiceBox
 
 if [ "$OCTOPI_INCLUDE_JUICEBOX" == "yes" ]
 then
@@ -123,6 +123,24 @@ then
 else
   # let's remove the configs for system services we don't need
   rm /etc/systemd/system/juicebox.service
+fi
+
+### Build RTL8812AU driver from source
+if [ "$OCTOPI_INCLUDE_RTL8812AU" == "yes" ]
+then
+    pushd /home/"${BASE_USER}"
+    echo "--- Install build deps"
+    apt-get -y --force-yes install raspberrypi-kernel-headers
+    echo "--- Cloning RTL8812AU from aircrack-ng"
+    sudo -u "${BASE_USER}" git clone https://$OCTOPI_RTL8812AU_GIT_PATH --branch=$OCTOPI_RTL8812AU_GIT_BRANCH
+    cd rtl8812au
+    sudo -u "${BASE_USER}" sed -i 's/CONFIG_PLATFORM_I386_PC = y/CONFIG_PLATFORM_I386_PC = n/g' Makefile
+    sudo -u "${BASE_USER}" sed -i 's/CONFIG_PLATFORM_ARM_RPI = n/CONFIG_PLATFORM_ARM_RPI = y/g' Makefile
+    sudo -u "${BASE_USER}" sed -i 's/KVER .*=.*/KVER ?= 6.1.21-v7+/' Makefile
+    sudo -u "${BASE_USER}" make -j4
+    echo "--- Installing the compiled module to /lib/module"
+    make install
+    popd
 fi
 
 ### Disable Wifi Power management
@@ -144,8 +162,11 @@ fi
 
 
 #cleanup
+rm -rf /home/pi/rtl88*
 apt-get clean
 apt-get autoremove -y
+
+
 
 if [ -n "$OCTOPI_APTMIRROR" ];
 then
