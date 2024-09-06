@@ -13,3 +13,5 @@ src/vagrant/*.log
 src/vagrant/.vagrant
 .vscode
 .idea
+
+src/image/

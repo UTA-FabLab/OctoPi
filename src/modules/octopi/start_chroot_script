@@ -27,6 +27,8 @@ FFMPEG_HLS_DIR=/opt/ffmpeg-hls
 unpack /filesystem/home/pi /home/"${BASE_USER}" "${BASE_USER}"
 unpack /filesystem/home/root /root root
 unpack /filesystem/boot /boot
+ln -s /boot/firmware/octopi.txt /boot
+
 
 ## Maintanence Settings
 if [ "$OCTOPI_CHANGE_ACCESS_SETTINGS" == "yes" ]
@@ -51,7 +53,7 @@ apt-get autoremove -y
 apt-get -y --force-yes install python3 python3-virtualenv python3-dev git screen subversion cmake cmake-data avahi-daemon libavahi-compat-libdnssd1 libffi-dev libssl-dev libatlas3-base unzip jq
 
 echo " - Reinstall iputils-ping"
-apt-get install --reinstall iputils-ping
+apt-get -y --force-yes install --reinstall iputils-ping
 
 pushd /home/"${BASE_USER}"
 
@@ -155,17 +157,14 @@ systemctl_if_exists enable networkcheck.timer
 # Users can change their username easily via the Raspberry Pi imager, which breaks some of OctoPi's scripts
 # we need to install virtualenv-tools3, so let's get pip and that
 if [ "${BASE_DISTRO}" == "raspbian" ] || [ "${BASE_DISTRO}" == "raspios64" ] || [ "${BASE_DISTRO}" == "raspios" ]; then
-    apt install -y python3-pip
-    sudo -u pi pip3 install --user virtualenv-tools3
+    apt install -y python3-pip python3-virtualenv
+    # sudo -u pi pip3 install --user virtualenv-tools3
     systemctl_if_exists enable user-fix.service
 fi
-
-
 #cleanup
 rm -rf /home/pi/rtl88*
 apt-get clean
 apt-get autoremove -y
-
 
 
 if [ -n "$OCTOPI_APTMIRROR" ];
